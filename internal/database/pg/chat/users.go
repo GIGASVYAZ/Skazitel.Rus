@@ -80,7 +80,7 @@ func UpdateUserStatus(Username string, IsOnline bool) error {
 	}
 
 	if tag.RowsAffected() == 0 {
-		return errors.New("ИДИ нахуй")
+		return errors.New("Ошибка")
 	}
 
 	return nil

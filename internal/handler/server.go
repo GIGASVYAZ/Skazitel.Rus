@@ -1,11 +1,12 @@
-package app
+package handler
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"skazitel-rus/internal/repository"
 	"strconv"
+
+	"skazitel-rus/internal/repository"
 )
 
 type SendMessageRequest struct {
@@ -50,7 +51,7 @@ func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = chat.CreateMessage(req.UserId, req.Content)
+	err = repository.CreateMessage(req.UserId, req.Content)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -84,7 +85,7 @@ func getMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	messages, err := chat.GetMessages(limit)
+	messages, err := repository.GetMessages(limit)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

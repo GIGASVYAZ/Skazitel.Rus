@@ -1,6 +1,6 @@
 package main
 
-import "skazitel-rus/internal/app"
+import app "skazitel-rus/internal/handler"
 
 func main() {
 	app.RunServer()

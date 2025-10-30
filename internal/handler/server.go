@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"skazitel-rus/internal/database/pg/chat"
+	"skazitel-rus/internal/repository"
 	"strconv"
 )
 

@@ -3,84 +3,70 @@ package repository
 import (
 	"context"
 	"errors"
+	"skazitel-rus/pkg/database"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
 
-const DEF = `CREATE TABLE skazitel.users (
-	id SERIAL PRIMARY KEY,
-	username VARCHAR(50) UNIQUE NOT NULL,
-	password VARCHAR(255) NOT NULL,
-	created_at TIMESTAMP DEFAULT NOW(),
-	is_online BOOLEAN DEFAULT FALSE
-);`
-const DATABASE_URL = "postgres://postgres:mysecretpassword@localhost:5432/postgres"
-
-type User struct {
-	Id        int64
-	Username  string
-	Password  string
-	CreatedAt time.Time
-	IsOnline  bool
-}
-
 func CreateUser(Username string, Password string) error {
-	var err error
-	conn, err := pgx.Connect(context.Background(), DATABASE_URL)
-	if err != nil {
-		return err
+	pool := database.GetPool()
+	if pool == nil {
+		return errors.New("пул подключений не инициализирован")
 	}
 
-	defer conn.Close(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	_, err = conn.Exec(context.Background(), "insert into skazitel.users (username, password) values($1, $2)", Username, Password)
-	if err != nil {
-		return err
-	}
+	_, err := pool.Exec(ctx,
+		"INSERT INTO skazitel.users (username, password) VALUES ($1, $2)",
+		Username, Password)
 
-	return nil
+	return err
 }
 
 func UserAuthenticate(Username string, Password string) (bool, error) {
-	var err error
-	conn, err := pgx.Connect(context.Background(), DATABASE_URL)
+	pool := database.GetPool()
+	if pool == nil {
+		return false, errors.New("пул подключений не инициализирован")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var passwordUser string
+	err := pool.QueryRow(ctx,
+		"SELECT password FROM skazitel.users WHERE username = $1",
+		Username).Scan(&passwordUser)
+
 	if err != nil {
 		return false, err
 	}
-
-	defer conn.Close(context.Background())
-
-	var passwordUser string
-	err = conn.QueryRow(
-		context.Background(),
-		"SELECT password FROM skazitel.users WHERE username = $1", Username).Scan(&passwordUser)
 
 	if Password == passwordUser {
 		return true, nil
 	}
 
-	return false, err
+	return false, errors.New("пароль неверный")
 }
 
 func UpdateUserStatus(Username string, IsOnline bool) error {
-	var err error
-	conn, err := pgx.Connect(context.Background(), DATABASE_URL)
-	if err != nil {
-		return err
+	pool := database.GetPool()
+	if pool == nil {
+		return errors.New("пул подключений не инициализирован")
 	}
 
-	defer conn.Close(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	tag, err := conn.Exec(
-		context.Background(),
-		"update skazitel.users set is_online = $2 where username = $1", Username, IsOnline)
+	tag, err := pool.Exec(ctx,
+		"UPDATE skazitel.users SET is_online = $2 WHERE username = $1",
+		Username, IsOnline)
+
 	if err != nil {
 		return err
 	}
 
 	if tag.RowsAffected() == 0 {
-		return errors.New("Ошибка")
+		return errors.New("пользователь не найден")
 	}
 
 	return nil

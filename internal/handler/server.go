@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
+	"skazitel-rus/internal/usecase"
+	"skazitel-rus/pkg/response"
 	"strconv"
-
-	"skazitel-rus/internal/repository"
 )
 
 type SendMessageRequest struct {
@@ -14,61 +12,57 @@ type SendMessageRequest struct {
 	Content string `json:"content"`
 }
 
-type MessageResponse struct {
-	Status string `json:"status"`
+type Handler struct {
+	messageUseCase *usecase.MessageUseCase
+	userUseCase    *usecase.UserUseCase
 }
 
-func messagesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		sendMessageHandler(w, r)
-	} else if r.Method == http.MethodGet {
-		getMessagesHandler(w, r)
-	} else {
-		notFoundHandler(w, r)
+func NewHandler(messageUC *usecase.MessageUseCase, userUC *usecase.UserUseCase) *Handler {
+	return &Handler{
+		messageUseCase: messageUC,
+		userUseCase:    userUC,
 	}
 }
 
-func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(map[string]string{"error": "СLOX"})
+func (h *Handler) MessagesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		h.SendMessageHandler(w, r)
+	} else if r.Method == http.MethodGet {
+		h.GetMessagesHandler(w, r)
+	} else {
+		response.ErrorResponse(w, http.StatusMethodNotAllowed, "Метод не разрешен")
+	}
 }
 
-func sendMessageHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	response.ErrorResponse(w, http.StatusNotFound, "Маршрут не найден")
+}
+
+func (h *Handler) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(MessageResponse{"Неверный метод"})
+		response.ErrorResponse(w, http.StatusMethodNotAllowed, "Метод не разрешен")
 		return
 	}
 
 	var req SendMessageRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := response.DecodeJSON(r, &req)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(MessageResponse{"Неверный формат данных"})
+		response.ErrorResponse(w, http.StatusBadRequest, "Неверный формат данных")
 		return
 	}
 
-	err = repository.CreateMessage(req.UserId, req.Content)
+	err = h.messageUseCase.SendMessage(req.UserId, req.Content)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(MessageResponse{"Ошибка при создании сообщения"})
+		response.ErrorResponse(w, http.StatusInternalServerError, "Ошибка при создании сообщения")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(MessageResponse{"Сообщение отправлено"})
+	response.SuccessResponse(w, http.StatusCreated, nil, "Сообщение отправлено")
 }
 
-func getMessagesHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(MessageResponse{"Метод не разрешен"})
+		response.ErrorResponse(w, http.StatusMethodNotAllowed, "Метод не разрешен")
 		return
 	}
 
@@ -78,30 +72,16 @@ func getMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		var err error
 		limit, err = strconv.Atoi(limitStr)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(MessageResponse{"Неверный параметр limit"})
+			response.ErrorResponse(w, http.StatusBadRequest, "Неверный параметр limit")
 			return
 		}
 	}
 
-	messages, err := repository.GetMessages(limit)
+	messages, err := h.messageUseCase.GetLastMessages(limit)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(MessageResponse{"Ошибка при получении сообщений"})
+		response.ErrorResponse(w, http.StatusInternalServerError, "Ошибка при получении сообщений")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(messages)
-}
-
-func RunServer() {
-
-	http.HandleFunc("/", notFoundHandler)
-	http.HandleFunc("/messages", messagesHandler)
-
-	log.Println("Сервер запущен на http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	response.SuccessResponse(w, http.StatusOK, messages, "Сообщения получены")
 }

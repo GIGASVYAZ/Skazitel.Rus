@@ -1,4 +1,4 @@
-package repository
+package messageRepository
 
 import (
 	"context"
@@ -8,7 +8,13 @@ import (
 	"time"
 )
 
-func CreateMessage(UserId int64, Content string) error {
+type PostgresMessageRepository struct{}
+
+func NewPostgresMessageRepository() *PostgresMessageRepository {
+	return &PostgresMessageRepository{}
+}
+
+func (r *PostgresMessageRepository) Create(userId int64, content string) error {
 	pool := database.GetPool()
 	if pool == nil {
 		return errors.New("пул подключений не инициализирован")
@@ -19,12 +25,12 @@ func CreateMessage(UserId int64, Content string) error {
 
 	_, err := pool.Exec(ctx,
 		"INSERT INTO skazitel.messages (user_id, content) VALUES ($1, $2)",
-		UserId, Content)
+		userId, content)
 
 	return err
 }
 
-func GetMessages(limit int) ([]domain.Message, error) {
+func (r *PostgresMessageRepository) GetNLast(limit int) ([]domain.Message, error) {
 	pool := database.GetPool()
 	if pool == nil {
 		return nil, errors.New("пул подключений не инициализирован")
@@ -46,6 +52,7 @@ func GetMessages(limit int) ([]domain.Message, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer rows.Close()
 
 	var messages []domain.Message
@@ -55,6 +62,7 @@ func GetMessages(limit int) ([]domain.Message, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		messages = append(messages, msg)
 	}
 

@@ -11,14 +11,18 @@ import (
 
 var pool *pgxpool.Pool
 
-func InitPool(ctx context.Context, databaseURL string) error {
+func InitPoolWithConfig(ctx context.Context, databaseURL string, maxConns, minConns int32) error {
+	if pool != nil {
+		return fmt.Errorf("пул подключений уже инициализирован")
+	}
+
 	config, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return fmt.Errorf("ошибка парсинга конфига: %w", err)
 	}
 
-	config.MaxConns = 25
-	config.MinConns = 5
+	config.MaxConns = int32(maxConns)
+	config.MinConns = int32(minConns)
 	config.MaxConnLifetime = 5 * time.Minute
 	config.MaxConnIdleTime = 2 * time.Minute
 	config.HealthCheckPeriod = 1 * time.Minute

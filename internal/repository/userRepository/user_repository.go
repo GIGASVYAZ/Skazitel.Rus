@@ -1,4 +1,4 @@
-package repository
+package userRepository
 
 import (
 	"context"
@@ -7,7 +7,13 @@ import (
 	"time"
 )
 
-func CreateUser(Username string, Password string) error {
+type PostgresUserRepository struct{}
+
+func NewPostgresUserRepository() *PostgresUserRepository {
+	return &PostgresUserRepository{}
+}
+
+func (r *PostgresUserRepository) Create(username string, password string) error {
 	pool := database.GetPool()
 	if pool == nil {
 		return errors.New("пул подключений не инициализирован")
@@ -18,12 +24,12 @@ func CreateUser(Username string, Password string) error {
 
 	_, err := pool.Exec(ctx,
 		"INSERT INTO skazitel.users (username, password) VALUES ($1, $2)",
-		Username, Password)
+		username, password)
 
 	return err
 }
 
-func UserAuthenticate(Username string, Password string) (bool, error) {
+func (r *PostgresUserRepository) IsPasswordByUsernameEqualTo(username string, password string) (bool, error) {
 	pool := database.GetPool()
 	if pool == nil {
 		return false, errors.New("пул подключений не инициализирован")
@@ -35,20 +41,20 @@ func UserAuthenticate(Username string, Password string) (bool, error) {
 	var passwordUser string
 	err := pool.QueryRow(ctx,
 		"SELECT password FROM skazitel.users WHERE username = $1",
-		Username).Scan(&passwordUser)
+		username).Scan(&passwordUser)
 
 	if err != nil {
 		return false, err
 	}
 
-	if Password == passwordUser {
+	if password == passwordUser {
 		return true, nil
 	}
 
 	return false, errors.New("пароль неверный")
 }
 
-func UpdateUserStatus(Username string, IsOnline bool) error {
+func (r *PostgresUserRepository) UpdateIsOnline(username string, isOnline bool) error {
 	pool := database.GetPool()
 	if pool == nil {
 		return errors.New("пул подключений не инициализирован")
@@ -59,7 +65,7 @@ func UpdateUserStatus(Username string, IsOnline bool) error {
 
 	tag, err := pool.Exec(ctx,
 		"UPDATE skazitel.users SET is_online = $2 WHERE username = $1",
-		Username, IsOnline)
+		username, isOnline)
 
 	if err != nil {
 		return err

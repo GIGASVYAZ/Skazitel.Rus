@@ -3,20 +3,39 @@ package main
 import (
 	"context"
 	"log"
-	app "skazitel-rus/internal/handler"
+	"net/http"
+	"skazitel-rus/internal/handler"
+	"skazitel-rus/pkg/config"
 	"skazitel-rus/pkg/database"
 )
 
-const DATABASE_URL = "postgres://postgres:mysecretpassword@localhost:5432/postgres"
-
 func main() {
-	ctx := context.Background()
+	cfg := config.New()
 
-	err := database.InitPool(ctx, DATABASE_URL)
+	ctx := context.Background()
+	err := database.InitPoolWithConfig(
+		ctx,
+		cfg.Database.URL,
+		cfg.Database.MaxConns,
+		cfg.Database.MinConns,
+	)
 	if err != nil {
 		log.Fatal("Ошибка инициализации пула:", err)
 	}
+
 	defer database.ClosePool()
 
-	app.RunServer()
+	pool := database.GetPool()
+	if pool == nil {
+		log.Fatal("Пул подключений не инициализирован")
+	}
+
+	mux := handler.NewRouter(pool)
+
+	runServer(mux, cfg.Server.Port)
+}
+
+func runServer(mux *http.ServeMux, port string) {
+	log.Printf("Сервер запущен на http://localhost:%s\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

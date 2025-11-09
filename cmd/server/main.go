@@ -4,15 +4,16 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"skazitel-rus/internal/handler"
-	"skazitel-rus/pkg/config"
+
+	"skazitel-rus/internal/interfaces/router"
 	"skazitel-rus/pkg/database"
+	"skazitel-rus/pkg/httpserver"
 )
 
 func main() {
-	cfg := config.New()
-
+	cfg := httpserver.New()
 	ctx := context.Background()
+
 	err := database.InitPoolWithConfig(
 		ctx,
 		cfg.Database.URL,
@@ -30,8 +31,7 @@ func main() {
 		log.Fatal("Пул подключений не инициализирован")
 	}
 
-	mux := handler.NewRouter(pool)
-
+	mux := router.New(pool)
 	runServer(mux, cfg.Server.Port)
 }
 

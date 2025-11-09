@@ -2,46 +2,48 @@ package handler
 
 import (
 	"net/http"
-	"skazitel-rus/internal/usecase"
-	"skazitel-rus/pkg/response"
 	"strconv"
+
+	messagecommand "skazitel-rus/internal/usecase/command/message"
+	messagequery "skazitel-rus/internal/usecase/query/message"
+	"skazitel-rus/pkg/response"
 )
 
-type SendMessageRequest struct {
-	UserId  int64  `json:"user_id"`
-	Content string `json:"content"`
+type MessageHandler struct {
+	sendMessageHandler *messagecommand.SendMessageHandler
+	getMessagesHandler *messagequery.GetMessagesHandler
 }
 
-type Handler struct {
-	messageUseCase *usecase.MessageUseCase
-	userUseCase    *usecase.UserUseCase
-}
-
-func NewHandler(messageUC *usecase.MessageUseCase, userUC *usecase.UserUseCase) *Handler {
-	return &Handler{
-		messageUseCase: messageUC,
-		userUseCase:    userUC,
+func NewMessageHandler(
+	sendMessageHandler *messagecommand.SendMessageHandler,
+	getMessagesHandler *messagequery.GetMessagesHandler,
+) *MessageHandler {
+	return &MessageHandler{
+		sendMessageHandler: sendMessageHandler,
+		getMessagesHandler: getMessagesHandler,
 	}
 }
 
-func (h *Handler) MessagesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		h.SendMessageHandler(w, r)
-	} else if r.Method == http.MethodGet {
-		h.GetMessagesHandler(w, r)
-	} else {
+func (h *MessageHandler) MessagesHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		h.SendMessage(w, r)
+	case http.MethodGet:
+		h.GetMessages(w, r)
+	default:
 		response.ErrorResponse(w, http.StatusMethodNotAllowed, "Метод не разрешен")
 	}
 }
 
-func (h *Handler) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	response.ErrorResponse(w, http.StatusNotFound, "Маршрут не найден")
-}
-
-func (h *Handler) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
+func (h *MessageHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		response.ErrorResponse(w, http.StatusMethodNotAllowed, "Метод не разрешен")
 		return
+	}
+
+	type SendMessageRequest struct {
+		UserID  int64  `json:"user_id"`
+		Content string `json:"content"`
 	}
 
 	var req SendMessageRequest
@@ -51,7 +53,12 @@ func (h *Handler) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.messageUseCase.SendMessage(req.UserId, req.Content)
+	cmd := messagecommand.SendMessageCommand{
+		UserID:  req.UserID,
+		Content: req.Content,
+	}
+
+	err = h.sendMessageHandler.Handle(r.Context(), cmd)
 	if err != nil {
 		response.ErrorResponse(w, http.StatusInternalServerError, "Ошибка при создании сообщения")
 		return
@@ -60,7 +67,7 @@ func (h *Handler) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	response.SuccessResponse(w, http.StatusCreated, nil, "Сообщение отправлено")
 }
 
-func (h *Handler) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
+func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.ErrorResponse(w, http.StatusMethodNotAllowed, "Метод не разрешен")
 		return
@@ -77,7 +84,11 @@ func (h *Handler) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	messages, err := h.messageUseCase.GetLastMessages(limit)
+	q := messagequery.GetMessagesQuery{
+		Limit: limit,
+	}
+
+	messages, err := h.getMessagesHandler.Handle(r.Context(), q)
 	if err != nil {
 		response.ErrorResponse(w, http.StatusInternalServerError, "Ошибка при получении сообщений")
 		return

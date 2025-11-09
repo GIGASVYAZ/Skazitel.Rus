@@ -21,8 +21,8 @@ func InitPoolWithConfig(ctx context.Context, databaseURL string, maxConns, minCo
 		return fmt.Errorf("ошибка парсинга конфига: %w", err)
 	}
 
-	config.MaxConns = int32(maxConns)
-	config.MinConns = int32(minConns)
+	config.MaxConns = maxConns
+	config.MinConns = minConns
 	config.MaxConnLifetime = 5 * time.Minute
 	config.MaxConnIdleTime = 2 * time.Minute
 	config.HealthCheckPeriod = 1 * time.Minute

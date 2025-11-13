@@ -4,41 +4,42 @@ import (
 	"context"
 	"errors"
 	"skazitel-rus/internal/domain/message"
-	"skazitel-rus/pkg/database"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type PostgresMessageRepository struct{}
-
-func New() *PostgresMessageRepository {
-	return &PostgresMessageRepository{}
+type PostgresMessageRepository struct {
+	pool *pgxpool.Pool
 }
 
-func (r *PostgresMessageRepository) Create(userID int64, content string) error {
-	pool := database.GetPool()
-	if pool == nil {
+func New(pool *pgxpool.Pool) *PostgresMessageRepository {
+	return &PostgresMessageRepository{pool: pool}
+}
+
+func (r *PostgresMessageRepository) SendMessage(userID int64, content string) error {
+	if r.pool == nil {
 		return errors.New("пул подключений не инициализирован")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := pool.Exec(ctx,
+	_, err := r.pool.Exec(ctx,
 		"INSERT INTO skazitel.messages (user_id, content) VALUES ($1, $2)",
 		userID, content)
 	return err
 }
 
-func (r *PostgresMessageRepository) GetLastN(limit int) ([]message.Message, error) {
-	pool := database.GetPool()
-	if pool == nil {
+func (r *PostgresMessageRepository) GetNLast(limit int) ([]message.Message, error) {
+	if r.pool == nil {
 		return nil, errors.New("пул подключений не инициализирован")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	rows, err := pool.Query(ctx, `
+	rows, err := r.pool.Query(ctx, `
 		SELECT id, user_id, content, created_at
 		FROM (
 			SELECT id, user_id, content, created_at
@@ -48,6 +49,7 @@ func (r *PostgresMessageRepository) GetLastN(limit int) ([]message.Message, erro
 		) AS last_messages
 		ORDER BY created_at ASC
 	`, limit)
+
 	if err != nil {
 		return nil, err
 	}

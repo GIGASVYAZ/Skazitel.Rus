@@ -1,6 +1,9 @@
-package usercommand
+package setonlineusecase
 
-import "context"
+import (
+	"context"
+	"skazitel-rus/internal/domain/user"
+)
 
 type SetUserOnlineCommand struct {
 	Username string
@@ -8,10 +11,10 @@ type SetUserOnlineCommand struct {
 }
 
 type SetUserOnlineHandler struct {
-	userRepo UserRepository
+	userRepo user.UserRepository
 }
 
-func NewSetUserOnlineHandler(userRepo UserRepository) *SetUserOnlineHandler {
+func NewSetUserOnlineHandler(userRepo user.UserRepository) *SetUserOnlineHandler {
 	return &SetUserOnlineHandler{
 		userRepo: userRepo,
 	}

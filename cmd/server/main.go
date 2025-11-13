@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"skazitel-rus/internal/interfaces/router"
+	"skazitel-rus/internal/handler/router"
 	"skazitel-rus/pkg/database"
 	"skazitel-rus/pkg/httpserver"
 )

@@ -1,7 +1,8 @@
-package messagequery
+package getmessageusecase
 
 import (
 	"context"
+	"skazitel-rus/internal/domain/message"
 )
 
 type GetMessagesQuery struct {
@@ -9,17 +10,17 @@ type GetMessagesQuery struct {
 }
 
 type GetMessagesHandler struct {
-	messageRepo MessageRepository
+	messageRepo message.MessageRepository
 }
 
-func NewGetMessagesHandler(messageRepo MessageRepository) *GetMessagesHandler {
+func NewGetMessagesHandler(messageRepo message.MessageRepository) *GetMessagesHandler {
 	return &GetMessagesHandler{
 		messageRepo: messageRepo,
 	}
 }
 
 func (h *GetMessagesHandler) Handle(ctx context.Context, q GetMessagesQuery) ([]MessageDTO, error) {
-	messages, err := h.messageRepo.GetLastN(q.Limit)
+	messages, err := h.messageRepo.GetNLast(q.Limit)
 	if err != nil {
 		return nil, err
 	}

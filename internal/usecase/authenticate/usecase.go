@@ -1,8 +1,9 @@
-package userquery
+package authenticateusecase
 
 import (
 	"context"
 	"errors"
+	"skazitel-rus/internal/domain/user"
 )
 
 type AuthenticateUserQuery struct {
@@ -11,10 +12,10 @@ type AuthenticateUserQuery struct {
 }
 
 type AuthenticateUserHandler struct {
-	userRepo UserRepository
+	userRepo user.UserRepository
 }
 
-func NewAuthenticateUserHandler(userRepo UserRepository) *AuthenticateUserHandler {
+func NewAuthenticateUserHandler(userRepo user.UserRepository) *AuthenticateUserHandler {
 	return &AuthenticateUserHandler{
 		userRepo: userRepo,
 	}
@@ -23,7 +24,7 @@ func NewAuthenticateUserHandler(userRepo UserRepository) *AuthenticateUserHandle
 func (h *AuthenticateUserHandler) Handle(ctx context.Context, q AuthenticateUserQuery) (bool, error) {
 	user, err := h.userRepo.GetByUsername(q.Username)
 	if err != nil {
-		return false, err
+		return false, errors.New("Непредвиденная ошибка:" + err.Error())
 	}
 
 	if user == nil {

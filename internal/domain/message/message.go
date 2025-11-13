@@ -3,15 +3,15 @@ package message
 import "time"
 
 type Message struct {
-	ID        int64
-	UserID    int64
-	Content   string
-	CreatedAt time.Time
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type MessageRepository interface {
-	Create(userID int64, content string) error
-	GetLastN(limit int) ([]Message, error)
+	SendMessage(userID int64, content string) error
+	GetNLast(limit int) ([]Message, error)
 }
 
 const MessageTableSQL = `CREATE TABLE IF NOT EXISTS skazitel.messages (

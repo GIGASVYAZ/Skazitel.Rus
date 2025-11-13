@@ -11,7 +11,7 @@ type User struct {
 }
 
 type UserRepository interface {
-	Create(username string, password string) error
+	RegisterUser(username string, password string) error
 	GetByUsername(username string) (*User, error)
 	UpdateIsOnline(username string, isOnline bool) error
 }

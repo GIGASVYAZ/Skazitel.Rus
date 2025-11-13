@@ -1,4 +1,4 @@
-package handler
+package notfoundusecase
 
 import (
 	"net/http"

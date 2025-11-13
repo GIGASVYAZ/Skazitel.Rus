@@ -1,6 +1,9 @@
-package usercommand
+package registerusecase
 
-import "context"
+import (
+	"context"
+	"skazitel-rus/internal/domain/user"
+)
 
 type RegisterUserCommand struct {
 	Username string
@@ -8,15 +11,15 @@ type RegisterUserCommand struct {
 }
 
 type RegisterUserHandler struct {
-	userRepo UserRepository
+	userRepo user.UserRepository
 }
 
-func NewRegisterUserHandler(userRepo UserRepository) *RegisterUserHandler {
+func NewRegisterUserHandler(userRepo user.UserRepository) *RegisterUserHandler {
 	return &RegisterUserHandler{
 		userRepo: userRepo,
 	}
 }
 
 func (h *RegisterUserHandler) Handle(ctx context.Context, cmd RegisterUserCommand) error {
-	return h.userRepo.Create(cmd.Username, cmd.Password)
+	return h.userRepo.RegisterUser(cmd.Username, cmd.Password)
 }

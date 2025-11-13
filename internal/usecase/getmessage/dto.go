@@ -1,4 +1,4 @@
-package messagequery
+package getmessageusecase
 
 import "time"
 

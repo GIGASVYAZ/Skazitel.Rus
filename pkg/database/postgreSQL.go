@@ -1,0 +1,52 @@
+package database
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+var pool *pgxpool.Pool
+
+func InitPoolWithConfig(ctx context.Context, databaseURL string, maxConns, minConns int32) error {
+	if pool != nil {
+		return fmt.Errorf("пул подключений уже инициализирован")
+	}
+
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return fmt.Errorf("ошибка парсинга конфига: %w", err)
+	}
+
+	config.MaxConns = maxConns
+	config.MinConns = minConns
+	config.MaxConnLifetime = 5 * time.Minute
+	config.MaxConnIdleTime = 2 * time.Minute
+	config.HealthCheckPeriod = 1 * time.Minute
+
+	pool, err = pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return fmt.Errorf("ошибка создания пула: %w", err)
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		return fmt.Errorf("ошибка подключения к БД: %w", err)
+	}
+
+	log.Println("Пул подключений инициализирован")
+	return nil
+}
+
+func ClosePool() {
+	if pool != nil {
+		pool.Close()
+		log.Println("Пул подключений закрыт")
+	}
+}
+
+func GetPool() *pgxpool.Pool {
+	return pool
+}

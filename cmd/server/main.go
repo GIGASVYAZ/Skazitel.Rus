@@ -6,12 +6,12 @@ import (
 	"net/http"
 
 	"skazitel-rus/internal/handler/router"
+	"skazitel-rus/pkg/config"
 	"skazitel-rus/pkg/database"
-	"skazitel-rus/pkg/httpserver"
 )
 
 func main() {
-	cfg := httpserver.New()
+	cfg := config.New()
 	ctx := context.Background()
 
 	err := database.InitPoolWithConfig(

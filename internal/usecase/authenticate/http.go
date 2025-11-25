@@ -23,21 +23,13 @@ func (h *AuthenticateUserHandler) Authenticate(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	q := AuthenticateUserQuery{
-		Username: req.Username,
-		Password: req.Password,
-	}
+	q := AuthenticateUserQuery(req)
 
-	isValid, err := h.Handle(r.Context(), q)
+	result, err := h.Handle(r.Context(), q)
 	if err != nil {
 		response.ErrorResponse(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	if !isValid {
-		response.ErrorResponse(w, http.StatusUnauthorized, "Неверные учетные данные")
-		return
-	}
-
-	response.SuccessResponse(w, http.StatusOK, nil, "Аутентификация успешна")
+	response.SuccessResponse(w, http.StatusOK, result, "Аутентификация успешна")
 }

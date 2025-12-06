@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	jwt "skazitel-rus/internal/infrastructure/jwt"
 	messagerepository "skazitel-rus/internal/infrastructure/repository/message"
 	userrepository "skazitel-rus/internal/infrastructure/repository/user"
 	authenticateusecase "skazitel-rus/internal/usecase/authenticate"
@@ -35,7 +36,8 @@ func New(pool *pgxpool.Pool) *http.ServeMux {
 	mux.HandleFunc("/users/register", registerHandler.Register)
 	mux.HandleFunc("/users/authenticate", authenticateHandler.Authenticate)
 	mux.HandleFunc("/users/set-online", setUserOnlineHandler.SetOnline)
-	mux.HandleFunc("/messages", messageHandler.MessagesHandler)
+
+	mux.HandleFunc("/messages", jwt.Middleware(messageHandler.MessagesHandler))
 
 	log.Println("Маршруты успешно инициализированы")
 	return mux

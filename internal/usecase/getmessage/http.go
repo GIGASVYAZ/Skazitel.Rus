@@ -2,6 +2,7 @@ package getmessageusecase
 
 import (
 	"net/http"
+	"skazitel-rus/internal/infrastructure/jwt"
 	"skazitel-rus/pkg/response"
 	"strconv"
 )
@@ -9,6 +10,12 @@ import (
 func (h *GetMessagesHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.ErrorResponse(w, http.StatusMethodNotAllowed, "Метод не разрешен")
+		return
+	}
+
+	_, ok := jwt.GetUserFromContext(r.Context())
+	if !ok {
+		response.ErrorResponse(w, http.StatusUnauthorized, "Пользователь не найден в контексте")
 		return
 	}
 

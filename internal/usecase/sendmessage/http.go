@@ -2,6 +2,7 @@ package sendmessageusecase
 
 import (
 	"net/http"
+	"skazitel-rus/internal/infrastructure/jwt"
 	"skazitel-rus/pkg/response"
 )
 
@@ -11,8 +12,13 @@ func (h *SendMessageHandler) SendMessage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	user, ok := jwt.GetUserFromContext(r.Context())
+	if !ok {
+		response.ErrorResponse(w, http.StatusUnauthorized, "Пользователь не найден в контексте")
+		return
+	}
+
 	type SendMessageRequest struct {
-		UserID  int64  `json:"user_id"`
 		Content string `json:"content"`
 	}
 
@@ -24,7 +30,7 @@ func (h *SendMessageHandler) SendMessage(w http.ResponseWriter, r *http.Request)
 	}
 
 	cmd := SendMessageCommand{
-		UserID:  req.UserID,
+		UserID:  int64(user.UserID),
 		Content: req.Content,
 	}
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"skazitel-rus/internal/domain/user"
 	"skazitel-rus/internal/infrastructure/jwt"
+	"time"
 )
 
 type AuthenticateUserQuery struct {
@@ -20,11 +21,13 @@ type AuthenticateUserResult struct {
 
 type AuthenticateUserHandler struct {
 	userRepo user.UserRepository
+	tokenTTL time.Duration
 }
 
-func NewAuthenticateUserHandler(userRepo user.UserRepository) *AuthenticateUserHandler {
+func NewAuthenticateUserHandler(userRepo user.UserRepository, tokenTTL time.Duration) *AuthenticateUserHandler {
 	return &AuthenticateUserHandler{
 		userRepo: userRepo,
+		tokenTTL: tokenTTL,
 	}
 }
 
@@ -42,7 +45,7 @@ func (h *AuthenticateUserHandler) Handle(ctx context.Context, q AuthenticateUser
 		return nil, errors.New("пароль неверный")
 	}
 
-	token, err := jwt.GenerateToken(int(user.ID), user.Username)
+	token, err := jwt.GenerateToken(int(user.ID), user.Username, h.tokenTTL)
 	if err != nil {
 		return nil, errors.New("ошибка при генерации токена: " + err.Error())
 	}

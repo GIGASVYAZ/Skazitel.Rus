@@ -31,7 +31,7 @@ func main() {
 		log.Fatal("Пул подключений не инициализирован")
 	}
 
-	mux := router.New(pool)
+	mux := router.New(pool, cfg)
 	runServer(mux, cfg.Server.Port)
 }
 

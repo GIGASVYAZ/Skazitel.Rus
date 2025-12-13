@@ -7,8 +7,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const TokenTTL = 5 * time.Minute
-
 var jwtSecret = []byte("sbeuKomar")
 
 type CustomClaims struct {
@@ -17,8 +15,8 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID int, username string) (string, error) {
-	expirationTime := time.Now().Add(TokenTTL)
+func GenerateToken(userID int, username string, tokenTTL time.Duration) (string, error) {
+	expirationTime := time.Now().Add(tokenTTL)
 	claims := &CustomClaims{
 		UserID:   userID,
 		Username: username,

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"time"
 )
 
 type Config struct {
@@ -17,7 +18,8 @@ type DatabaseConfig struct {
 }
 
 type ServerConfig struct {
-	Port string
+	Port     string
+	TokenTTL time.Duration
 }
 
 func New() Config {
@@ -28,7 +30,8 @@ func New() Config {
 			MinConns: int32(getEnvAsInt("DB_MIN_CONNS", 5)),
 		},
 		Server: ServerConfig{
-			Port: getEnv("SERVER_PORT", "8080"),
+			Port:     getEnv("SERVER_PORT", "8080"),
+			TokenTTL: time.Duration(getEnvAsInt("SERVER_TOKEN_TTL_S", 5*60)) * time.Second,
 		},
 	}
 }

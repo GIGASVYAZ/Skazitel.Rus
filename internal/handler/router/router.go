@@ -14,11 +14,12 @@ import (
 	registerusecase "skazitel-rus/internal/usecase/register"
 	sendmessageusecase "skazitel-rus/internal/usecase/sendmessage"
 	setonlineusecase "skazitel-rus/internal/usecase/setonline"
+	"skazitel-rus/pkg/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func New(pool *pgxpool.Pool) *http.ServeMux {
+func New(pool *pgxpool.Pool, cfg config.Config) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	userRepo := userrepository.New(pool)
@@ -26,7 +27,7 @@ func New(pool *pgxpool.Pool) *http.ServeMux {
 
 	registerHandler := registerusecase.NewRegisterUserHandler(userRepo)
 	setUserOnlineHandler := setonlineusecase.NewSetUserOnlineHandler(userRepo)
-	authenticateHandler := authenticateusecase.NewAuthenticateUserHandler(userRepo)
+	authenticateHandler := authenticateusecase.NewAuthenticateUserHandler(userRepo, cfg.Server.TokenTTL)
 	sendMessageHandler := sendmessageusecase.NewSendMessageHandler(messageRepo)
 	getMessagesHandler := getmessageusecase.NewGetMessagesHandler(messageRepo)
 

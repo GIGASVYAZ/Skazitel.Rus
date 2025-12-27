@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"skazitel-rus/internal/domain/message"
+	"skazitel-rus/internal/domain/user"
 	messagerepository "skazitel-rus/internal/infrastructure/repository/message"
 	getmessageusecase "skazitel-rus/internal/usecase/getmessage"
 	"skazitel-rus/pkg/config"
@@ -16,6 +18,7 @@ import (
 )
 
 var pool *pgxpool.Pool
+var testUserId *int64
 
 func TestMain(m *testing.M) {
 	fmt.Println("Тесты запущены")
@@ -44,22 +47,32 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-func setupHandler(t *testing.T) (context.Context, *pgxpool.Pool, *getmessageusecase.GetMessagesHandler) {
+func setupDB(t *testing.T) {
 	ctx := context.Background()
 
 	require.NotNil(t, pool, "пул подключений не инициализирован")
 
+	_, err := pool.Exec(ctx, "drop schema if exists skazitel cascade;")
+	pool.Exec(ctx, user.UserTableSQL)
+	pool.Exec(ctx, message.MessageTableSQL)
+	pool.Exec(ctx, `
+		insert into skazitel.users (username, password)
+		values ('test-user', 'test-pass');
+	`)
+	pool.QueryRow(ctx, "select id from skazitel.users where username = 'test-user';").Scan(testUserId)
+	require.NoError(t, err, "ошибка при инициализации БД")
+}
+
+func setup(t *testing.T) *getmessageusecase.GetMessagesHandler {
+	setupDB(t)
 	repo := messagerepository.New(pool)
 	handler := getmessageusecase.NewGetMessagesHandler(repo)
-
-	_, err := pool.Exec(ctx, "DELETE FROM skazitel.messages")
-	require.NoError(t, err, "ошибка при очистке таблицы")
-
-	return ctx, pool, handler
+	return handler
 }
 
 func TestNoneMessagesReturnsEmptyList(t *testing.T) {
-	ctx, _, handler := setupHandler(t)
+	ctx := context.Background()
+	handler := setup(t)
 
 	result, err := handler.Handle(ctx, getmessageusecase.GetMessagesQuery{
 		Limit: 2,
@@ -71,7 +84,8 @@ func TestNoneMessagesReturnsEmptyList(t *testing.T) {
 }
 
 func TestReturnsMax2Messages(t *testing.T) {
-	ctx, pool, handler := setupHandler(t)
+	ctx := context.Background()
+	handler := setup(t)
 
 	_, err := pool.Exec(ctx,
 		"INSERT INTO skazitel.messages (user_id, content) VALUES (23, 'first')")

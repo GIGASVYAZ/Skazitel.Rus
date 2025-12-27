@@ -52,14 +52,22 @@ func setupDB(t *testing.T) {
 
 	require.NotNil(t, pool, "пул подключений не инициализирован")
 
-	_, err := pool.Exec(ctx, "drop schema if exists skazitel cascade;")
-	pool.Exec(ctx, user.UserTableSQL)
-	pool.Exec(ctx, message.MessageTableSQL)
-	pool.Exec(ctx, `
-		insert into skazitel.users (username, password)
-		values ('test-user', 'test-pass');
-	`)
-	pool.QueryRow(ctx, "select id from skazitel.users where username = 'test-user';").Scan(testUserId)
+	_, err := pool.Exec(ctx, "drop schema if exists skazitel cascade; create schema skazitel;")
+	require.NoError(t, err, "ошибка при инициализации БД")
+
+	_, err = pool.Exec(ctx, user.UserTableSQL)
+	require.NoError(t, err, "ошибка при инициализации БД")
+
+	_, err = pool.Exec(ctx, message.MessageTableSQL)
+	require.NoError(t, err, "ошибка при инициализации БД")
+
+	_, err = pool.Exec(ctx, `
+    insert into skazitel.users (username, password)
+    values ('test-user', 'test-pass');
+  `)
+	require.NoError(t, err, "ошибка при инициализации БД")
+
+	err = pool.QueryRow(ctx, "select id from skazitel.users where username = 'test-user';").Scan(&testUserId)
 	require.NoError(t, err, "ошибка при инициализации БД")
 }
 
@@ -88,13 +96,13 @@ func TestReturnsMax2Messages(t *testing.T) {
 	handler := setup(t)
 
 	_, err := pool.Exec(ctx,
-		"INSERT INTO skazitel.messages (user_id, content) VALUES (23, 'first')")
+		"INSERT INTO skazitel.messages (user_id, content) VALUES ($1, 'first')", testUserId)
 
 	_, err = pool.Exec(ctx,
-		"INSERT INTO skazitel.messages (user_id, content) VALUES (23, 'second')")
+		"INSERT INTO skazitel.messages (user_id, content) VALUES ($1, 'second')", testUserId)
 
 	_, err = pool.Exec(ctx,
-		"INSERT INTO skazitel.messages (user_id, content) VALUES (23, 'third')")
+		"INSERT INTO skazitel.messages (user_id, content) VALUES ($1, 'third')", testUserId)
 	require.NoError(t, err, "ошибка при вставке тестовых данных")
 
 	result, err := handler.Handle(ctx, getmessageusecase.GetMessagesQuery{

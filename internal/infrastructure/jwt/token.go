@@ -7,6 +7,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const TokenTTL = 5 * time.Minute
+
 var jwtSecret = []byte("sbeuKomar")
 
 type CustomClaims struct {
